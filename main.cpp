@@ -40,8 +40,7 @@ static uint8_t JpegBuffer[1024 * 63]__attribute((aligned(32)));
 #endif
 
 DisplayBase Display;
-DigitalIn   button0(USER_BUTTON0);
-DigitalIn   button1(USER_BUTTON1);
+DigitalIn   button0(USER_BUTTON);
 DigitalOut  led1(LED1);
 DigitalOut  led2(LED2);
 
@@ -121,12 +120,8 @@ int main() {
         if (button0 == 0) {
             led1 = 1;
             save_image_bmp(); // save as bitmap
-            led1 = 0;
-        }
-        if (button1 == 0) {
-            led2 = 1;
             save_image_jpg(); // save as jpeg
-            led2 = 0;
+            led1 = 0;
         }
     }
 }

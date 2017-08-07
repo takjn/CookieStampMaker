@@ -4,6 +4,10 @@
             "help": "0:disable 1:enable",
             "value": "1"
         },
+        "camera-type":{
+            "help": "Please see mbed-gr-libs/README.md",
+            "value": "CAMERA_CVBS"
+        },
         "lcd":{
             "help": "0:disable 1:enable",
             "value": "0"
