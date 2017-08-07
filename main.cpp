@@ -5,6 +5,7 @@
 #include "JPEG_Converter.h"
 #include "dcache-control.h"
 #include "opencv2/opencv.hpp"
+#include "tinypcl.hpp"
 
 #define MOUNT_NAME             "storage"
 
@@ -16,8 +17,8 @@
 
 /*! Frame buffer stride: Frame buffer stride should be set to a multiple of 32 or 128
     in accordance with the frame buffer burst transfer mode. */
-#define VIDEO_PIXEL_HW         (640u)  /* VGA */
-#define VIDEO_PIXEL_VW         (480u)  /* VGA */
+#define VIDEO_PIXEL_HW         (320u)  /* VGA */
+#define VIDEO_PIXEL_VW         (240u)  /* VGA */
 
 #define FRAME_BUFFER_STRIDE    (((VIDEO_PIXEL_HW * DATA_SIZE_PER_PIC) + 31u) & ~31u)
 #define FRAME_BUFFER_HEIGHT    (VIDEO_PIXEL_VW)
@@ -101,6 +102,9 @@ static void Start_Video_Camera(void) {
     EasyAttach_CameraStart(Display, DisplayBase::VIDEO_INPUT_CHANNEL_0);
 }
 
+// 点群データ
+PointCloud point_cloud;
+
 int main() {
     // Initialize the background to black
     for (uint32_t i = 0; i < sizeof(user_frame_buffer0); i += 2) {
@@ -119,9 +123,59 @@ int main() {
         storage.wait_connect();
         if (button0 == 0) {
             led1 = 1;
-            save_image_bmp(); // save as bitmap
-            save_image_jpg(); // save as jpeg
+            // save_image_bmp(); // save as bitmap
+            // save_image_jpg(); // save as jpeg
+
+            // Transform buffer into OpenCV Mat
+            cv::Mat img_yuv(VIDEO_PIXEL_VW, VIDEO_PIXEL_HW, CV_8UC2, user_frame_buffer0);
+
+            // グレースケール画像に変換
+            cv::Mat img_tmp, img_gray;
+            cv::cvtColor(img_yuv, img_tmp, CV_YUV2GRAY_YUY2);
+
+            // 平滑化
+            cv::medianBlur(img_tmp, img_gray, 3);
+
+            // グレースケール画像の保存
+            char file_name[32];
+            sprintf(file_name, "/"MOUNT_NAME"/img_%d.bmp", file_name_index);
+            cv::imwrite(file_name, img_gray);
+            printf("Saved file %s\r\n", file_name);
+
+            // 画像を1pixelごとに処理
+            for (unsigned int y = 0; y < VIDEO_PIXEL_VW; y++) {
+                for (unsigned int x = 0; x < VIDEO_PIXEL_HW; x++) {
+
+                    // 画像の明度を深さに変換
+                    unsigned int depth = point_cloud.SIZE_Z - (unsigned int)((double)img_gray.at<unsigned char>(y, x) / 255.0 * point_cloud.SIZE_Z);
+
+                    // 深さに応じて3次元データを削る
+                    for (unsigned int z=0; z<depth; z++) {
+                        point_cloud.set(x, y, z, 0);
+                    }
+
+                }
+            }
+
+            // 底を作る
+            for (unsigned int y = 0; y < VIDEO_PIXEL_VW; y++) {
+                for (unsigned int x = 0; x < VIDEO_PIXEL_HW; x++) {
+                        point_cloud.set(x, y, 0, 0);
+                        point_cloud.set(x, y, 1, 1);
+                }
+            }
+
+            printf("saving STL file\r\n");
+
+            // STLファイルを保存
+            sprintf(file_name, "/storage/result_%d.stl", file_name_index);
+            point_cloud.save_as_stl(file_name);
+            printf("Saved file %s\r\n", file_name);
+
             led1 = 0;
+
+            file_name_index++;
+            point_cloud.clear();
         }
     }
 }
