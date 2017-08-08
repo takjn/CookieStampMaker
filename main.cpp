@@ -17,8 +17,8 @@
 
 /*! Frame buffer stride: Frame buffer stride should be set to a multiple of 32 or 128
     in accordance with the frame buffer burst transfer mode. */
-#define VIDEO_PIXEL_HW         (320u)  /* VGA */
-#define VIDEO_PIXEL_VW         (240u)  /* VGA */
+#define VIDEO_PIXEL_HW         (160u)  /* VGA */
+#define VIDEO_PIXEL_VW         (120u)  /* VGA */
 
 #define FRAME_BUFFER_STRIDE    (((VIDEO_PIXEL_HW * DATA_SIZE_PER_PIC) + 31u) & ~31u)
 #define FRAME_BUFFER_HEIGHT    (VIDEO_PIXEL_VW)
@@ -131,10 +131,10 @@ int main() {
 
             // グレースケール画像に変換
             cv::Mat img_tmp, img_gray;
-            cv::cvtColor(img_yuv, img_tmp, CV_YUV2GRAY_YUY2);
+            cv::cvtColor(img_yuv, img_gray, CV_YUV2GRAY_YUY2);
 
             // 平滑化
-            cv::medianBlur(img_tmp, img_gray, 3);
+            // cv::medianBlur(img_tmp, img_gray, 3);
 
             // グレースケール画像の保存
             char file_name[32];
@@ -147,23 +147,36 @@ int main() {
                 for (unsigned int x = 0; x < VIDEO_PIXEL_HW; x++) {
 
                     // 画像の明度を深さに変換
-                    unsigned int depth = point_cloud.SIZE_Z - (unsigned int)((double)img_gray.at<unsigned char>(y, x) / 255.0 * point_cloud.SIZE_Z);
+                    unsigned int depth = (unsigned int)((double)img_gray.at<unsigned char>(y, x) / 255.0 * point_cloud.SIZE_Z);
 
                     // 深さに応じて3次元データを削る
-                    for (unsigned int z=0; z<depth; z++) {
+                    for (unsigned int z=point_cloud.SIZE_Z; z>depth+5; z--) {
                         point_cloud.set(x, y, z, 0);
                     }
 
                 }
             }
 
-            // 底を作る
+            // 底と縁を作る
             for (unsigned int y = 0; y < VIDEO_PIXEL_VW; y++) {
                 for (unsigned int x = 0; x < VIDEO_PIXEL_HW; x++) {
                         point_cloud.set(x, y, 0, 0);
-                        point_cloud.set(x, y, 1, 1);
+                        point_cloud.set(x, y, point_cloud.SIZE_Z-1, 0);
                 }
             }
+            for (unsigned int y = 0; y < VIDEO_PIXEL_VW; y++) {
+                for (unsigned int z = 0; z < point_cloud.SIZE_Z; z++) {
+                        point_cloud.set(0, y, z, 0);
+                        point_cloud.set(VIDEO_PIXEL_HW - 1, y, z, 0);
+                }
+            }
+            for (unsigned int x = 0; x < VIDEO_PIXEL_HW; x++) {
+                for (unsigned int z = 0; z < point_cloud.SIZE_Z; z++) {
+                        point_cloud.set(x, 0, z, 0);
+                        point_cloud.set(x, VIDEO_PIXEL_VW - 1, z, 0);
+                }
+            }
+
 
             printf("saving STL file\r\n");
 

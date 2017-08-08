@@ -32,8 +32,8 @@
 using std::bitset;
 
 //  3D grid size
-#define PCD_SIZE_X 320  // size
-#define PCD_SIZE_Y 240  // size
+#define PCD_SIZE_X 160  // size
+#define PCD_SIZE_Y 120  // size
 #define PCD_SIZE_Z 25   // size
 #define PCD_SCALE_X 1.0 // resolution(mm/grid)
 #define PCD_SCALE_Y 1.0 // resolution(mm/grid)
