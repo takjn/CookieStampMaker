@@ -147,7 +147,7 @@ int main() {
                 for (unsigned int x = 0; x < VIDEO_PIXEL_HW; x++) {
 
                     // 画像の明度を深さに変換
-                    unsigned int depth = (unsigned int)((double)img_gray.at<unsigned char>(y, x) / 255.0 * point_cloud.SIZE_Z);
+                    unsigned int depth = (unsigned int)((double)(255 - img_gray.at<unsigned char>(y, x)) / 255.0 * point_cloud.SIZE_Z);
 
                     // 深さに応じて3次元データを削る
                     for (unsigned int z=point_cloud.SIZE_Z; z>depth+5; z--) {
